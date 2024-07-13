@@ -1,209 +1,236 @@
-import os
 from dotenv import load_dotenv
-import pandas as pd
+import os
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-from spotipy.oauth2 import SpotifyClientCredentials
-import json
+from datetime import datetime, date
+import pandas as pd
+import time
+import inspect
 
-load_dotenv()
+class SpotifyStuff:
 
-client_id = os.getenv("CLIENT_ID")
-client_secret = os.getenv("CLIENT_SECRET")
-redirect_uri = os.getenv("REDIRECT_URI")
-scope = "user-read-recently-played user-top-read"
+    def __init__(self):
+        load_dotenv()
 
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
-                                               client_secret=client_secret,
-                                               redirect_uri=redirect_uri,
-                                               scope=scope))
+        self.username = os.getenv("USERNAME")
+        self.client_id = os.getenv("CLIENT_ID")
+        self.client_secret = os.getenv("CLIENT_SECRET")
+        self.redirect_uri = os.getenv("REDIRECT_URI")
+        self.scope = "user-read-recently-played user-top-read"
 
-recently_played = sp.current_user_recently_played(limit=50, after=None, before=None)
+    def create_auth(self):
+        print("Initializing connection to the Spotify API...")
+        self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(username=self.username,
+                                                            client_id=self.client_id,
+                                                            client_secret=self.client_secret,
+                                                            redirect_uri=self.redirect_uri,
+                                                            scope=self.scope))
+        
+        time.sleep(1)
+        
+        return self.sp
+        
+    def get_user_recently_played(self) -> pd.DataFrame:
+        """
+        Get info about tracks from the current user's last 50 played tracks. 
+        """
+        data = self.sp.current_user_recently_played(limit=50, after=None, before=None)
 
-# top_artists_long_term = sp.current_user_top_artists(limit=50, offset=0, time_range='long_term')
-# top_artists_medium_term = sp.current_user_top_artists(limit=50, offset=0, time_range='medium_term')
-# top_artists_short_term = sp.current_user_top_artists(limit=50, offset=0, time_range='short_term')
+        self.recently_played_list = [
+            {
+                'artist_id': row['track']['artists'][0]['id'],
+                'artist_name': row['track']['artists'][0]['name'],
+                'artist_url': row['track']['artists'][0]['external_urls']['spotify'],
+                'album_id': row['track']['album']['id'],
+                'album_name': row['track']['album']['name'],
+                'album_release_date': row['track']['album']['release_date'],
+                'album_total_tracks': row['track']['album']['total_tracks'],
+                'album_url': row['track']['album']['external_urls']['spotify'],
+                'track_id': row['track']['id'],
+                'track_name': row['track']['name'],
+                'track_length': row['track']['duration_ms'],
+                'played_at': row['played_at'],
+            }
+            for row in data['items']
+        ]
 
-def get_recently_played_info(recently_played_data: dict) -> list[dict]:
-    """
-    ADD+++++++++++++++++++++++++++++++++++++++++++ 
-    """
-    recently_played_list = [
-        {
-            'artist_id': row['track']['artists'][0]['id'],
-            'artist_name': row['track']['artists'][0]['name'],
-            'artist_url': row['track']['artists'][0]['external_urls']['spotify'],
-            'album_id': row['track']['album']['id'],
-            'album_name': row['track']['album']['name'],
-            'album_release_date': row['track']['album']['release_date'],
-            'album_total_tracks': row['track']['album']['total_tracks'],
-            'album_url': row['track']['album']['external_urls']['spotify'],
-            'track_id': row['track']['id'],
-            'track_name': row['track']['name'],
-            'track_length': row['track']['duration_ms'],
-            'played_at': row['played_at'],
-        }
-        for row in recently_played_data['items']
-    ]
+        self.create_csv_file(data=self.recently_played_list, function_name=inspect.currentframe().f_code.co_name)
 
-    return recently_played_list
+        print("User's recently played tracks obtained.")
+        time.sleep(1)
 
+        return self.recently_played_list
 
+    def get_top_artists_long_term(self) -> pd.DataFrame:
+        """
+        Get the current user's top 50 artists in the long term (calculated from ~1 year of data and 
+        including all new data as it becomes available).
+        """
+        data = self.sp.current_user_top_artists(limit=50, offset=0, time_range='long_term')
 
-### funções para retornar as mais ouvidas - 4 semanas, 6 meses, 12 meses
-
- 
-
-### funções pra retornar informações do artista/album/track da listagem das 50 recentemente ouvidas
-
-
-def generate_df_from_recently_played_list(recently_played_list: list[dict]) -> pd.DataFrame:
-    """
-    ADD+++++++++++++++++++++++++++++++++++++++++++ 
-    """
-    recently_played_df = pd.DataFrame.from_dict(recently_played_list)
-
-    return recently_played_df
-
-
-
-recently_played_list = get_recently_played_info(recently_played)
-
-recently_played_df = generate_df_from_recently_played_list(recently_played_list)
-
-# recently_played_df.to_csv('data.csv', encoding='utf-8')
-
-print(recently_played_df)
-
-
-
-
-
-# def get_album_info(data):
-#     album_list = [
-#         {
-#             'album_id': row['track']['album']['id'],
-#             'album_name': row['track']['album']['name'],
-#             'album_release_date': row['track']['album']['release_date'],
-#             'album_total_tracks': row['track']['album']['total_tracks'],
-#             'album_url': row['track']['album']['external_urls']['spotify']
-#         }
-#         for row in data['items']
-#     ]
-
-#     album_df = pd.DataFrame.from_dict(album_list)
-
-#     print(f"--- {time.time()} seconds ---")
-
-#     print(album_df)
-#     return album_df
-
-# album_df = get_album_info(recently_played)
-
-
-
-
-
-
-
-
-# if recently_played_df.empty:
-#     print("Nenhuma música escutada ")
-
-
-
-
-
-# album_name = most_played['items'][0]['track']['album']['name']
-# album_id = most_played['items'][0]['track']['album']['id']
-# album_release_date = most_played['items'][0]['track']['album']['release_date']
-# track_length = most_played['items'][0]['track']['duration_ms']
-# track_id = most_played['items'][0]['track']['id']
-# track_name = most_played['items'][0]['track']['name']
-# played_at = most_played['items'][0]['context']
-
-
-
-# playlist_link = "https://open.spotify.com/playlist/0emV5saNMkpbDBcYQYeTwq"
-
-# playlist_URI = playlist_link.split("/")[-1].split('?')[0]
-
-# # LOOP A CADA OFFSET=100+100 ATÉ DF SER VAZIO
-# data = sp.playlist_tracks(playlist_URI, offset=0, market="US")
-
-# # album_list = []
-# # for row in data['items']:
-# #     album_id = row['track']['album']['id']
-# #     album_name = row['track']['album']['name']
-# #     album_release_date = row['track']['album']['release_date']
-# #     album_total_tracks = row['track']['album']['total_tracks']
-# #     album_url = row['track']['album']['external_urls']['spotify']
-# #     album_element = {'album_id':album_id,'name':album_name,'release_date':album_release_date,
-# #                         'total_tracks':album_total_tracks,'url':album_url}
-# #     album_list.append(album_element)
-
-
-
-# for idx, item in enumerate(results['items']):
-#     track = item['track']
-#     print(idx, track['artists'][0]['name'], " - ", track['name'])
-
-
-
-# def get_auth_token():
-#     client_creds = client_id + ":" + client_secret
-#     client_creds_b64 = base64.b64encode(client_creds.encode()).decode()
-
-#     url = "https://accounts.spotify.com/api/token"
-
-#     headers = {
-#         "Authorization": f"Basic {client_creds_b64}",
-#         "Content-Type": "application/x-www-form-urlencoded",
-#         "redirect_uri": "http://localhost",
-#         "scope": "user-top-read"
-#     }
-
-#     data = {"grant_type": "client_credentials"}
-
-#     response = requests.post(url=url, headers=headers, data=data)
-
-#     access_token = response.json()["access_token"]
-#     return access_token
-
-# def get_auth_header(token):
-#     return {"Authorization": "Bearer " + token}
-
-# def get_artist_id(token, artist_name):
-#     url = f"https://api.spotify.com/v1/search?q={artist_name}&type=artist&market=BR&limit=1&offset=0"
-#     headers = get_auth_header(token)
+        top_artists_long_term = [
+            {
+                'artist_id': row['id'],
+                'artist_url': row['external_urls']['spotify'],
+                'artist_name': row['name']
+            }
+            for row in data['items']
+        ]
     
-#     response = requests.get(url=url, headers=headers)
-#     artist_id = response.json()["artists"]["items"]
-#     return artist_id[0]["id"]
+        self.create_csv_file(data=top_artists_long_term, function_name=inspect.currentframe().f_code.co_name)
 
-# def get_artist_top_tracks(token, artist_id):
-#     url = f"https://api.spotify.com/v1/artists/{artist_id}/top-tracks?market=BR"
-#     headers = get_auth_header(token)
+        print("User's top 50 artists in the long term obtained.")
+        time.sleep(1)
 
-#     response = requests.get(url=url, headers=headers)
-#     artist_top_tracks = response.json()["tracks"]
-#     return artist_top_tracks
+    def get_top_artists_medium_term(self) -> pd.DataFrame:
+        """
+        Get the current user's top 50 artists in the medium term (approximately last 6 months).
+        """
+        data = self.sp.current_user_top_artists(limit=50, offset=0, time_range='medium_term')
 
-# def get_user_top_artists(token):
-#     url = "https://api.spotify.com/v1/me/top/artists?time_range=long_term&limit=50&offset=0"
-#     headers = get_auth_header(token)
-
-#     response = requests.get(url=url, headers=headers)
-#     user_top_artists = response.json()
-#     return user_top_artists
+        top_artists_medium_term = [
+            {
+                'artist_id': row['id'],
+                'artist_url': row['external_urls']['spotify'],
+                'artist_name': row['name']
+            }
+            for row in data['items']
+        ]
     
+        self.create_csv_file(data=top_artists_medium_term, function_name=inspect.currentframe().f_code.co_name)
+
+        print("User's top 50 artists in the medium term obtained.")
+        time.sleep(1)
+
+    def get_top_artists_short_term(self) -> pd.DataFrame:
+        """
+        Get the current user's top 50 artists in the short term (approximately last 4 weeks).
+        """
+        data = self.sp.current_user_top_artists(limit=50, offset=0, time_range='short_term')
+
+        top_artists_short_term = [
+            {
+                'artist_id': row['id'],
+                'artist_url': row['external_urls']['spotify'],
+                'artist_name': row['name']
+            }
+            for row in data['items']
+        ]
     
-# auth_token = get_auth_token()
-# artist_id = get_artist_id(auth_token, artist_name="blink182")
-# artist_top_tracks = get_artist_top_tracks(auth_token, artist_id=artist_id)
-# user_top_artists = get_user_top_artists(auth_token)
+        self.create_csv_file(data=top_artists_short_term, function_name=inspect.currentframe().f_code.co_name)
 
-# print(user_top_artists)
+        print("User's top 50 artists in the short term obtained.")
+        time.sleep(1)
 
-# # for idx, song in enumerate(artist_top_tracks):
-# #     print(f"{idx + 1}. {song['name']} {song['popularity']} {song['album']['name']}")
+    def get_top_tracks_long_term(self) -> pd.DataFrame:
+        """
+        Get the current user's top 50 tracks in the long term (calculated from ~1 year of data and 
+        including all new data as it becomes available).
+        """
+        data = self.sp.current_user_top_tracks(limit=50, offset=0, time_range='long_term')
+
+        top_tracks_long_term = [
+            {
+                'track_id': row['id'],
+                'track_name': row['name'],
+                'track_artist': row['artists'][0]['name']
+            }
+            for row in data['items']
+        ]
+
+        self.create_csv_file(data=top_tracks_long_term, function_name=inspect.currentframe().f_code.co_name)
+
+        print("User's top 50 tracks in the long term obtained.")
+        time.sleep(1)
+
+    def get_top_tracks_medium_term(self) -> pd.DataFrame:
+        """
+        Get the current user's top 50 tracks in the medium term (approximately last 6 months).
+        """
+        data = self.sp.current_user_top_tracks(limit=50, offset=0, time_range='medium_term')
+
+        top_tracks_medium_term = [
+            {
+                'track_id': row['id'],
+                'track_name': row['name'],
+                'track_artist': row['artists'][0]['name']
+            }
+            for row in data['items']
+        ]
+
+        self.create_csv_file(data=top_tracks_medium_term, function_name=inspect.currentframe().f_code.co_name)
+
+        print("User's top 50 tracks in the medium term obtained.")
+        time.sleep(1)
+
+    def get_top_tracks_short_term(self) -> pd.DataFrame:
+        """
+        Get the current user's top 50 tracks in the short term (approximately last 4 weeks).
+        """
+        data = self.sp.current_user_top_tracks(limit=50, offset=0, time_range='short_term')
+
+        top_tracks_short_term = [
+            {
+                'track_id': row['id'],
+                'track_name': row['name'],
+                'track_artist': row['artists'][0]['name']
+            }
+            for row in data['items']
+        ]
+
+        self.create_csv_file(data=top_tracks_short_term, function_name=inspect.currentframe().f_code.co_name)
+
+        print("User's top 50 tracks in the short term obtained.")
+        time.sleep(1)
+
+    def get_album_info_for_user_recently_played(self):
+        """
+        Get Spotify catalog information for the albums, identified by their Spotify IDs, 
+        that contain the last 20 recently played songs.
+        """
+        album_id_list = []
+
+        for row in self.recently_played_list:
+            album_id_list.append(row['album_id'])
+            if len(album_id_list) == 20:
+                break
+
+        data = self.sp.albums(album_id_list)
+
+        albums_info = [
+            {
+                'album_id': row['id'],
+                'album_name': row['name'],
+                'tracks': [track['name'] for track in row['tracks']['items']],
+                'total_tracks': row['total_tracks'],
+                'album_release_date': row['release_date'],
+                'album_artist': [artist['name'] for artist in row['artists']],
+                'genres': row['genres']
+            }
+            for row in data['albums']
+        ]
+
+        self.create_csv_file(data=albums_info, function_name=inspect.currentframe().f_code.co_name)
+
+        print("Album info for user's recently played tracks obtained.")
+        time.sleep(1)
+
+    def create_csv_file(self, data: list[dict], function_name: str):
+        """
+        Create a dataframe from the list of dictionaries created in a given function
+        and then saves it as .csv file, with the name ending with datetime.now()"""
+        dataframe = pd.DataFrame.from_dict(data)
+        dataframe["extracted_at"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        dataframe.to_csv(f"data/{date.today()}-" + function_name.removeprefix("get_") + ".csv")
+
+if __name__ == "__main__":
+    spotifystuff = SpotifyStuff()
+    spotifystuff.create_auth()
+    spotifystuff.get_user_recently_played()
+    spotifystuff.get_top_artists_long_term()
+    spotifystuff.get_top_artists_medium_term()
+    spotifystuff.get_top_artists_short_term()
+    spotifystuff.get_top_tracks_long_term()
+    spotifystuff.get_top_tracks_medium_term()
+    spotifystuff.get_top_tracks_short_term()
+    spotifystuff.get_album_info_for_user_recently_played()

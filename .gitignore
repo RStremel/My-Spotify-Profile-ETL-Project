@@ -1,5 +1,8 @@
 .venv 
 .env
+.cache
+.cache-rstremel
+.python-version
 src/__pycache__
 src/.cache
 src/main2.py

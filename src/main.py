@@ -6,8 +6,9 @@ from datetime import datetime, date
 import pandas as pd
 import time
 import inspect
+from utils import ms_to_minutes_and_seconds
 
-class SpotifyStuff:
+class SpotifyExtraction:
     def __init__(self):
         load_dotenv()
 
@@ -19,6 +20,7 @@ class SpotifyStuff:
 
     def create_auth(self):
         print("Initializing connection to the Spotify API...")
+        
         self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(username=self.username,
                                                             client_id=self.client_id,
                                                             client_secret=self.client_secret,
@@ -31,7 +33,7 @@ class SpotifyStuff:
         
     def get_user_recently_played(self) -> pd.DataFrame:
         """
-        Get info about tracks from the current user's last 50 played tracks. 
+        Gets info about tracks from the current user's last 50 played tracks. 
         """
         data = self.sp.current_user_recently_played(limit=50, after=None, before=None)
 
@@ -52,17 +54,17 @@ class SpotifyStuff:
             }
             for row in data['items']
         ]
-
-        self.create_csv_file(data=self.recently_played_list, function_name=inspect.currentframe().f_code.co_name)
+        
+        self.create_dataframe_from_list(data = self.recently_played_list, function_name=inspect.currentframe().f_code.co_name)
+        self.transform_ms_to_minutes_and_seconds(dataframe=self.dataframe)
+        self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
 
         print("User's 50 recently played tracks obtained.")
         time.sleep(1)
 
-        return self.recently_played_list
-
     def get_top_artists_long_term(self) -> pd.DataFrame:
         """
-        Get the current user's top 50 artists in the long term (calculated from ~1 year of data and 
+        Gets the current user's top 50 artists in the long term (calculated from ~1 year of data and 
         including all new data as it becomes available).
         """
         data = self.sp.current_user_top_artists(limit=50, offset=0, time_range='long_term')
@@ -76,15 +78,16 @@ class SpotifyStuff:
             }
             for index, row in enumerate(data['items'])
         ]
-    
-        self.create_csv_file(data=top_artists_long_term, function_name=inspect.currentframe().f_code.co_name)
+        
+        self.create_dataframe_from_list(data = top_artists_long_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
 
         print("The user's 50 most listened to artists in the long term obtained.")
         time.sleep(1)
 
     def get_top_artists_medium_term(self) -> pd.DataFrame:
         """
-        Get the current user's top 50 artists in the medium term (approximately last 6 months).
+        Gets the current user's top 50 artists in the medium term (approximately last 6 months).
         """
         data = self.sp.current_user_top_artists(limit=50, offset=0, time_range='medium_term')
 
@@ -97,15 +100,16 @@ class SpotifyStuff:
             }
             for index, row in enumerate(data['items'])
         ]
+        
+        self.create_dataframe_from_list(data = top_artists_medium_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
     
-        self.create_csv_file(data=top_artists_medium_term, function_name=inspect.currentframe().f_code.co_name)
-
         print("The user's 50 most listened to artists in the medium term obtained.")
         time.sleep(1)
 
     def get_top_artists_short_term(self) -> pd.DataFrame:
         """
-        Get the current user's top 50 artists in the short term (approximately last 4 weeks).
+        Gets the current user's top 50 artists in the short term (approximately last 4 weeks).
         """
         data = self.sp.current_user_top_artists(limit=50, offset=0, time_range='short_term')
 
@@ -119,14 +123,15 @@ class SpotifyStuff:
             for index, row in enumerate(data['items'])
         ]
     
-        self.create_csv_file(data=top_artists_short_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_dataframe_from_list(data = top_artists_short_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
 
         print("The user's 50 most listened to artists in the short term obtained.")
         time.sleep(1)
 
     def get_top_tracks_long_term(self) -> pd.DataFrame:
         """
-        Get the current user's top 50 tracks in the long term (calculated from ~1 year of data and 
+        Gets the current user's top 50 tracks in the long term (calculated from ~1 year of data and 
         including all new data as it becomes available).
         """
         data = self.sp.current_user_top_tracks(limit=50, offset=0, time_range='long_term')
@@ -141,14 +146,15 @@ class SpotifyStuff:
             for index, row in enumerate(data['items'])
         ]
 
-        self.create_csv_file(data=top_tracks_long_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_dataframe_from_list(data = top_tracks_long_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
 
         print("The user's 50 most listened to tracks in the long term obtained.")
         time.sleep(1)
 
     def get_top_tracks_medium_term(self) -> pd.DataFrame:
         """
-        Get the current user's top 50 tracks in the medium term (approximately last 6 months).
+        Gets the current user's top 50 tracks in the medium term (approximately last 6 months).
         """
         data = self.sp.current_user_top_tracks(limit=50, offset=0, time_range='medium_term')
 
@@ -162,14 +168,15 @@ class SpotifyStuff:
             for index, row in enumerate(data['items'])
         ]
 
-        self.create_csv_file(data=top_tracks_medium_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_dataframe_from_list(data = top_tracks_medium_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
 
         print("The user's 50 most listened to tracks in the medium term obtained.")
         time.sleep(1)
 
     def get_top_tracks_short_term(self) -> pd.DataFrame:
         """
-        Get the current user's top 50 tracks in the short term (approximately last 4 weeks).
+        Gets the current user's top 50 tracks in the short term (approximately last 4 weeks).
         """
         data = self.sp.current_user_top_tracks(limit=50, offset=0, time_range='short_term')
 
@@ -183,14 +190,15 @@ class SpotifyStuff:
             for index, row in enumerate(data['items'])
         ]
 
-        self.create_csv_file(data=top_tracks_short_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_dataframe_from_list(data = top_tracks_short_term, function_name=inspect.currentframe().f_code.co_name)
+        self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
 
         print("The user's 50 most listened to tracks in the short term obtained.")
         time.sleep(1)
 
     def get_album_tracks_for_user_recently_played(self):
         """
-        Get Spotify catalog information for the albums, identified by their Spotify IDs, 
+        Gets Spotify catalog information for the albums, identified by their Spotify IDs, 
         that appear in the last 20 recently played songs.
         """
         album_id_list = []
@@ -210,27 +218,42 @@ class SpotifyStuff:
             for row in data['albums']
         ]
 
-        self.create_csv_file(data=albums_tracks, function_name=inspect.currentframe().f_code.co_name)
+        self.create_dataframe_from_list(data = albums_tracks, function_name=inspect.currentframe().f_code.co_name)
+        self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
 
         print("Tracks from the user's 20 most recently listened to albums retrieved.")
         time.sleep(1)
 
-    def create_csv_file(self, data: list[dict], function_name: str):
+    def create_dataframe_from_list(self, data: list[dict], function_name: str) -> pd.DataFrame:
         """
-        Create a dataframe from the list of dictionaries created in a given function
-        and then saves it as .csv file, with the name ending with datetime.now()"""
-        dataframe = pd.DataFrame.from_dict(data)
-        dataframe["extracted_at"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        Creates a dataframe from the list of dictionaries created in a given function.
+        """
+        self.dataframe = pd.DataFrame.from_dict(data)
+        self.dataframe["extracted_at"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
         if function_name == "get_album_tracks_for_user_recently_played":
-            dataframe = dataframe[~dataframe["tracks"].apply(pd.Series).duplicated()]
+            self.dataframe = self.dataframe[~self.dataframe["tracks"].apply(pd.Series).duplicated()]
         else:
             pass
         
-        dataframe.to_csv(f"./data/{date.today()}-" + function_name.removeprefix("get_") + ".csv")
+        return self.dataframe
+    
+    def transform_ms_to_minutes_and_seconds(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+        """
+        Iterate through a list of track duration (in milliseconds) and transforms it into a minute:seconds (mm:ss) format.
+        """
+        dataframe["track_length"] = dataframe["track_length"].apply(lambda x: ms_to_minutes_and_seconds(x))
+                
+        return self.dataframe
+        
+    def create_csv_file(self, dataframe: pd.DataFrame, function_name: str):
+        """
+        Saves the previously created dataframe as .csv file, with its name ending with datetime.now()
+        """
+        dataframe.to_csv(f"./data/{date.today()}-" + function_name.removeprefix("get_") + ".csv", index=False)
 
 if __name__ == "__main__":
-    spotifystuff = SpotifyStuff()
+    spotifystuff = SpotifyExtraction()
     spotifystuff.create_auth()
     spotifystuff.get_user_recently_played()
     spotifystuff.get_top_artists_long_term()

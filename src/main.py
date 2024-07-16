@@ -2,11 +2,13 @@ from dotenv import load_dotenv
 import os
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import pandas as pd
 import time
 import inspect
 from utils import ms_to_minutes_and_seconds
+from sqlalchemy import create_engine
+import sqlite3
 
 class SpotifyExtraction:
     def __init__(self):
@@ -30,12 +32,22 @@ class SpotifyExtraction:
         time.sleep(1)
         
         return self.sp
+    
+    def create_sql_database(self, db_name="spotify.db"):
+        self.engine = create_engine(f'sqlite:///./database/{db_name}', echo=False)
+        self.conn = sqlite3.connect(db_name)
+        
+        print("Spotify database created.")
+
+        time.sleep(1)
         
     def get_user_recently_played(self) -> pd.DataFrame:
         """
-        Gets info about tracks from the current user's last 50 played tracks. 
+        Gets info about tracks from the current user's last 50 played tracks in the last 24 hours. 
         """
-        data = self.sp.current_user_recently_played(limit=50, after=None, before=None)
+        yesterday_unix_timestamp = int((datetime.now() - timedelta(days=1)).timestamp())
+        
+        data = self.sp.current_user_recently_played(limit=None, after=yesterday_unix_timestamp, before=None)
 
         self.recently_played_list = [
             {
@@ -58,6 +70,7 @@ class SpotifyExtraction:
         self.create_dataframe_from_list(data = self.recently_played_list, function_name=inspect.currentframe().f_code.co_name)
         self.transform_ms_to_minutes_and_seconds(dataframe=self.dataframe)
         self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
+        self.save_dataframe_as_table(function_name=inspect.currentframe().f_code.co_name, name="recently_played")
 
         print("User's 50 recently played tracks obtained.")
         time.sleep(1)
@@ -81,7 +94,8 @@ class SpotifyExtraction:
         
         self.create_dataframe_from_list(data = top_artists_long_term, function_name=inspect.currentframe().f_code.co_name)
         self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
-
+        self.save_dataframe_as_table(function_name=inspect.currentframe().f_code.co_name, name="top_artists_long_term")
+        
         print("The user's 50 most listened to artists in the long term obtained.")
         time.sleep(1)
 
@@ -103,6 +117,7 @@ class SpotifyExtraction:
         
         self.create_dataframe_from_list(data = top_artists_medium_term, function_name=inspect.currentframe().f_code.co_name)
         self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
+        self.save_dataframe_as_table(function_name=inspect.currentframe().f_code.co_name, name="top_artists_medium_term")
     
         print("The user's 50 most listened to artists in the medium term obtained.")
         time.sleep(1)
@@ -125,6 +140,7 @@ class SpotifyExtraction:
     
         self.create_dataframe_from_list(data = top_artists_short_term, function_name=inspect.currentframe().f_code.co_name)
         self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
+        self.save_dataframe_as_table(function_name=inspect.currentframe().f_code.co_name, name="top_artists_short_term")
 
         print("The user's 50 most listened to artists in the short term obtained.")
         time.sleep(1)
@@ -148,6 +164,7 @@ class SpotifyExtraction:
 
         self.create_dataframe_from_list(data = top_tracks_long_term, function_name=inspect.currentframe().f_code.co_name)
         self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
+        self.save_dataframe_as_table(function_name=inspect.currentframe().f_code.co_name, name="top_tracks_long_term")
 
         print("The user's 50 most listened to tracks in the long term obtained.")
         time.sleep(1)
@@ -170,6 +187,7 @@ class SpotifyExtraction:
 
         self.create_dataframe_from_list(data = top_tracks_medium_term, function_name=inspect.currentframe().f_code.co_name)
         self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
+        self.save_dataframe_as_table(function_name=inspect.currentframe().f_code.co_name, name="top_tracks_medium_term")
 
         print("The user's 50 most listened to tracks in the medium term obtained.")
         time.sleep(1)
@@ -192,6 +210,7 @@ class SpotifyExtraction:
 
         self.create_dataframe_from_list(data = top_tracks_short_term, function_name=inspect.currentframe().f_code.co_name)
         self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
+        self.save_dataframe_as_table(function_name=inspect.currentframe().f_code.co_name, name="top_tracks_short_term")
 
         print("The user's 50 most listened to tracks in the short term obtained.")
         time.sleep(1)
@@ -219,8 +238,10 @@ class SpotifyExtraction:
         ]
 
         self.create_dataframe_from_list(data = albums_tracks, function_name=inspect.currentframe().f_code.co_name)
+        self.dataframe = self.dataframe.explode("tracks")
         self.create_csv_file(dataframe=self.dataframe, function_name=inspect.currentframe().f_code.co_name)
-
+        self.save_dataframe_as_table(function_name=inspect.currentframe().f_code.co_name, name="album_tracks_for_recently_played")
+        
         print("Tracks from the user's 20 most recently listened to albums retrieved.")
         time.sleep(1)
 
@@ -252,9 +273,16 @@ class SpotifyExtraction:
         """
         dataframe.to_csv(f"./data/{date.today()}-" + function_name.removeprefix("get_") + ".csv", index=False)
 
+    def save_dataframe_as_table(self, function_name: str, name: str):
+        if function_name == "get_user_recently_played":
+            self.dataframe.to_sql(name=name, con=self.engine, if_exists="append", index=False)  
+        else:
+            self.dataframe.to_sql(name=name, con=self.engine, if_exists="replace", index=False)  
+                    
 if __name__ == "__main__":
     spotifystuff = SpotifyExtraction()
     spotifystuff.create_auth()
+    spotifystuff.create_sql_database()
     spotifystuff.get_user_recently_played()
     spotifystuff.get_top_artists_long_term()
     spotifystuff.get_top_artists_medium_term()

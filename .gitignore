@@ -7,3 +7,4 @@ src/__pycache__
 src/.cache
 src/main2.py
 data/*
+scripts/__pycache__

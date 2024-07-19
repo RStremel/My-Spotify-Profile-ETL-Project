@@ -3,6 +3,7 @@
 .cache
 .cache-rstremel
 .python-version
+src
 src/__pycache__
 src/.cache
 src/main2.py

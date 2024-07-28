@@ -4,10 +4,6 @@ from dotenv import load_dotenv
 import os
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-import time
-
-from sqlalchemy import create_engine
-import sqlite3
 
 def create_client(env_file_path: str):
     """
@@ -29,6 +25,13 @@ def create_client(env_file_path: str):
        
     return sp
 
+def connect_to_database(env_file_path: str):
+    load_dotenv(env_file_path)
+
+    database_uri = os.getenv("DATABASE_URI")
+
+    return database_uri
+
 def transform_ms_to_minutes_and_seconds(duration_ms: int) -> pd.DataFrame:
     """
     Transforms the duration of a track from milliseconds to a minute:seconds (mm:ss) format and saves it in a new colum.
@@ -39,13 +42,3 @@ def transform_ms_to_minutes_and_seconds(duration_ms: int) -> pd.DataFrame:
     duration_mm_ss =  f"{minutes:02}:{seconds:02}"
           
     return duration_mm_ss
-
-
-
-
-"mysql+pymysql://username:password@localhost/dbname"
-
-
-def create_sql_database(dbname="spotify.db"):
-    engine = create_engine(f"mysql+pymysql://username:password@localhost/{dbname}", echo=False)
-    df.to_sql()

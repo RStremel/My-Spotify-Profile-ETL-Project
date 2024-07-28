@@ -1,40 +1,14 @@
 from sqlalchemy import create_engine
-import sqlite3
 import pandas as pd
+
+from utils import connect_to_database
 
 class SpotifyLoader:
     def __init__(self) -> None:
-        self.database_uri = "postgresql://username:password@localhost/dbname"
-        # self.engine = create_engine(self.database_uri, echo=False)
-        # self.conn = sqlite3.connect("spotifydb.db")
+        self.database_uri = connect_to_database(env_file_path="config/.env")
 
-    def load_recently_played(self, df):
+    def load_to_database(self, df: pd.DataFrame, table_name: str, if_exists: str):
         engine = create_engine(self.database_uri)
-        df.to_sql("recently_played", engine, if_exists="append", index=False)
 
-    def load_top_artists_long_term(self, df):
-        self.engine = create_engine(self.database_uri, echo=False)
-        df.to_sql("top_artists_long_term", engine=self.engine, if_exists="replace", index=False)
-
-    def load_top_artists_medium_term(self, df):
-        self.engine = create_engine(self.database_uri, echo=False)
-        df.to_sql("top_artists_medium_term", engine=self.engine, if_exists="replace", index=False)
-
-    def load_top_artists_short_term(self, df):
-        self.engine = create_engine(self.database_uri, echo=False)
-        df.to_sql("top_artists_short_term", engine=self.engine, if_exists="replace", index=False)
-
-    def load_top_tracks_long_term(self, df):
-        self.engine = create_engine(self.database_uri, echo=False)
-        df.to_sql("top_tracks_long_term", engine=self.engine, if_exists="replace", index=False)
-
-    def load_top_tracks_medium_term(self, df):
-        self.engine = create_engine(self.database_uri, echo=False)
-        df.to_sql("top_tracks_medium_term", engine=self.engine, if_exists="replace", index=False)
-
-    def load_top_tracks_short_term(self, df):
-        self.engine = create_engine(self.database_uri, echo=False)
-        df.to_sql("top_tracks_short_term", engine=self.engine, if_exists="replace", index=False)
-
-    def load_album_tracks_recently_played(self, df):
-        df.to_sql("album_tracks_recently_played", engine=self.engine, if_exists="replace", index=False)
+        df.to_sql(table_name, engine, if_exists=if_exists, index=False)
+        print(f"Data loaded into {table_name} table successfully.")

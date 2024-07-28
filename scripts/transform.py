@@ -86,17 +86,3 @@ class SpotifyTransformer:
         df = pd.DataFrame(processed_albums_tracks)
         df["extracted_at"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         return self.df
-
-# if __name__ == "__main__":
-#     t = SpotifyTransformer()
-#     dft = t.transform_recently_played(raw_json_path='data/raw/recently_played.json')
-
-# #     dfartlt = t.transform_top_artists(raw_json_path='data/raw/top_artists_long_term.json')
-# #     dfartmt = t.transform_top_artists(raw_json_path='data/raw/top_artists_medium_term.json')
-# #     dfartst = t.transform_top_artists(raw_json_path='data/raw/top_artists_short_term.json')
-
-
-#     dft.to_csv('data/gold/dft.csv', index=False)
-# #     dfartlt.to_csv('data/gold/top_artists_long_term.csv', index=False)
-# #     dfartmt.to_csv('data/gold/top_artists_medium_term.csv', index=False)
-# #     dfartst.to_csv('data/gold/top_artists_short_term.csv', index=False)
